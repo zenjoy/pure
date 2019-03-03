@@ -6,9 +6,10 @@ This is a fork of [sindresorhus/pure](https://github.com/sindresorhus/pure), whi
 many of the good ideas from the Spaceship prompt and brings it to the speed and elegance of the
 Pure prompt.
 
+- Show the current time
+- Battery percentage when running low
 - Truncating the directory tree for long paths or in Git repos
 - Git Stash status (based on the work in https://github.com/sindresorhus/pure/pull/462)
-- Battery percentage when running low
 - Ruby version
 - Node.js version
 - Go version
