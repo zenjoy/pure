@@ -23,6 +23,57 @@
 # \e[K  => clears everything after the cursor on the current line
 # \e[2K => clear everything on the current line
 
+# for possible color codes, see https://jonasjacek.github.io/colors/
+
+PURE_PROMPT_BATTERY_SYMBOL_CHARGING="${PURE_PROMPT_BATTERY_SYMBOL_CHARGING="⇡"}"
+PURE_PROMPT_BATTERY_SYMBOL_DISCHARGING="${PURE_PROMPT_BATTERY_SYMBOL_DISCHARGING="⇣"}"
+PURE_PROMPT_BATTERY_SYMBOL_FULL="${PURE_PROMPT_BATTERY_SYMBOL_FULL="•"}"
+PURE_PROMPT_BATTERY_WARNING_THRESHOLD="${PURE_PROMPT_BATTERY_WARNING_THRESHOLD=20}"
+PURE_PROMPT_BATTERY_THRESHOLD="${PURE_PROMPT_BATTERY_THRESHOLD=10}"
+
+PURE_PROMPT_KUBECONTEXT_SHOW="${PURE_PROMPT_KUBECONTEXT_SHOW=true}"
+PURE_PROMPT_KUBECONTEXT_SYMBOL="${PURE_PROMPT_KUBECONTEXT_SYMBOL="\ue7b2 "}"
+PURE_PROMPT_KUBECONTEXT_COLOR="${PURE_PROMPT_KUBECONTEXT_COLOR="208"}"
+PURE_PROMPT_KUBECONTEXT_NAMESPACE_SHOW="${PURE_PROMPT_KUBECONTEXT_NAMESPACE_SHOW=true}"
+PURE_PROMPT_KUBECONTEXT_COLOR_GROUPS=(${PURE_PROMPT_KUBECONTEXT_COLOR_GROUPS=})
+
+PURE_PROMPT_TERRAFORM_SHOW="${PURE_PROMPT_TERRAFORM_SHOW=true}"
+PURE_PROMPT_TERRAFORM_SYMBOL="${PURE_PROMPT_TERRAFORM_SYMBOL="\uf9fd"}"
+PURE_PROMPT_TERRAFORM_COLOR="${PURE_PROMPT_TERRAFORM_COLOR="105"}"
+
+PURE_PROMPT_RUBY_SHOW="${PURE_PROMPT_RUBY_SHOW=true}"
+PURE_PROMPT_RUBY_SYMBOL="${PURE_PROMPT_RUBY_SYMBOL="\ue21e "}"
+PURE_PROMPT_RUBY_COLOR="${PURE_PROMPT_RUBY_COLOR="196"}"
+
+PURE_PROMPT_NODE_SHOW="${PURE_PROMPT_NODE_SHOW=true}"
+PURE_PROMPT_NODE_SYMBOL="${PURE_PROMPT_NODE_SYMBOL="\uf898 "}"
+PURE_PROMPT_NODE_COLOR="${PURE_PROMPT_NODE_COLOR="green"}"
+
+PURE_PROMPT_GOLANG_SHOW="${PURE_PROMPT_GOLANG_SHOW=true}"
+PURE_PROMPT_GOLANG_SYMBOL="${PURE_PROMPT_GOLANG_SYMBOL="\ue627 "}"
+PURE_PROMPT_GOLANG_COLOR="${PURE_PROMPT_GOLANG_COLOR="cyan"}"
+
+PURE_PROMPT_DOCKERCOMPOSE_SHOW="${PURE_PROMPT_DOCKERCOMPOSE_SHOW=true}"
+PURE_PROMPT_DOCKERCOMPOSE_SYMBOL="${PURE_PROMPT_DOCKERCOMPOSE_SYMBOL="\uf308  "}"
+PURE_PROMPT_DOCKERCOMPOSE_UP_COLOR="${PURE_PROMPT_DOCKERCOMPOSE_UP_COLOR="green"}"
+PURE_PROMPT_DOCKERCOMPOSE_DOWN_COLOR="${PURE_PROMPT_DOCKERCOMPOSE_DOWN_COLOR="red"}"
+PURE_PROMPT_DOCKERCOMPOSE_COLOR="${PURE_PROMPT_DOCKERCOMPOSE_COLOR="32"}"
+
++vi-git-stash() {
+	local -a stashes
+	stashes=$(git stash list 2>/dev/null | wc -l)
+	if [[ $stashes -gt 0 ]]; then
+		hook_com[misc]="stash=${stashes}"
+	fi
+}
+
+prompt_pure_exists() {
+  command -v $1 > /dev/null 2>&1
+}
+
+prompt_pure_defined() {
+  typeset -f + "$1" &> /dev/null
+}
 
 # turns seconds into human readable time
 # 165392 => 1d 21h 56m 32s
@@ -114,11 +165,44 @@ prompt_pure_preprompt_render() {
 	# Initialize the preprompt array.
 	local -a preprompt_parts
 
+	if [[ -n $prompt_pure_battery_info ]]; then
+		preprompt_parts+=('${prompt_pure_battery_info}%f')
+	fi
+
+	# Username and machine, if applicable.
+	[[ -n $prompt_pure_state[username] ]] && preprompt_parts+=('${prompt_pure_state[username]}')
+
+	# Execution time.
+	if [[ -n $prompt_pure_current_time ]]; then
+		if [ ${#preprompt_parts[@]} -eq 0  ]; then
+			preprompt_parts+=('%F{yellow}${prompt_pure_current_time}%f')
+		else
+			preprompt_parts+=('at %F{yellow}${prompt_pure_current_time}%f')
+		fi
+	fi
+
+	typeset -gA prompt_pure_vcs_info
+	local trunc_prefix
+
 	# Set the path.
-	preprompt_parts+=('%F{blue}%~%f')
+	if [[ -n $prompt_pure_vcs_info[top] ]]; then
+		local git_root=$prompt_pure_vcs_info[top]
+
+		# Check if the parent of the $git_root is "/"
+    if [[ $git_root:h == / ]]; then
+      trunc_prefix=/
+    else
+      trunc_prefix=$PURE_PROMPT_DIR_TRUNC_PREFIX
+    fi
+
+		prompt_pure_dir="$trunc_prefix$git_root:t${${PWD:A}#$~~git_root}"
+	else
+		trunc_prefix="%($((PURE_PROMPT_DIR_TRUNC + 1))~|$PURE_PROMPT_DIR_TRUNC_PREFIX|)"
+		prompt_pure_dir="$trunc_prefix%${PURE_PROMPT_DIR_TRUNC}~"
+	fi
+	preprompt_parts+=('in %F{blue}${prompt_pure_dir}%f')
 
 	# Add git branch and dirty status info.
-	typeset -gA prompt_pure_vcs_info
 	if [[ -n $prompt_pure_vcs_info[branch] ]]; then
 		preprompt_parts+=("%F{$git_color}"'${prompt_pure_vcs_info[branch]}${prompt_pure_git_dirty}%f')
 	fi
@@ -127,8 +211,36 @@ prompt_pure_preprompt_render() {
 		preprompt_parts+=('%F{cyan}${prompt_pure_git_arrows}%f')
 	fi
 
-	# Username and machine, if applicable.
-	[[ -n $prompt_pure_state[username] ]] && preprompt_parts+=('${prompt_pure_state[username]}')
+	# Git stash symbol.
+	if [[ -n $prompt_pure_vcs_info[stash] ]]; then
+		preprompt_parts+=('%F{cyan}${PURE_GIT_STASH_SYMBOL:-≡}%f')
+	fi
+
+	# Git stash symbol.
+	local -a other_preprompt_info
+	if [[ -n $prompt_pure_other_info[kubectl] ]]; then
+		other_preprompt_info+=('${prompt_pure_other_info[kubectl]}')
+	fi
+	if [[ -n $prompt_pure_other_info[terraform] ]]; then
+		other_preprompt_info+=('${prompt_pure_other_info[terraform]}')
+	fi
+	if [[ -n $prompt_pure_other_info[ruby] ]]; then
+		other_preprompt_info+=('${prompt_pure_other_info[ruby]}')
+	fi
+	if [[ -n $prompt_pure_other_info[node] ]]; then
+		other_preprompt_info+=('${prompt_pure_other_info[node]}')
+	fi
+	if [[ -n $prompt_pure_other_info[golang] ]]; then
+		other_preprompt_info+=('${prompt_pure_other_info[golang]}')
+	fi
+	if [[ -n $prompt_pure_other_info[dco] ]]; then
+		other_preprompt_info+=('${prompt_pure_other_info[dco]}')
+	fi
+
+	if [ ${#other_preprompt_info[@]} -ne 0  ]; then
+		preprompt_parts+="${(j.%F{242\} ⁞ %f.)other_preprompt_info}"
+	fi
+
 	# Execution time.
 	[[ -n $prompt_pure_cmd_exec_time ]] && preprompt_parts+=('%F{yellow}${prompt_pure_cmd_exec_time}%f')
 
@@ -171,6 +283,9 @@ prompt_pure_precmd() {
 	prompt_pure_check_cmd_exec_time
 	unset prompt_pure_cmd_timestamp
 
+	# set current time
+	prompt_pure_current_time=$(date +%T)
+
 	# shows the full path in the title
 	prompt_pure_set_title 'expand-prompt' '%~'
 
@@ -204,6 +319,248 @@ prompt_pure_precmd() {
 	fi
 }
 
+prompt_pure_async_battery_info() {
+	setopt localoptions noshwordsplit
+
+	local battery_data battery_percent battery_status battery_color battery_info
+
+  if prompt_pure_exists pmset; then
+    battery_data=$(pmset -g batt | grep "InternalBattery")
+
+    # Return if no internal battery
+    [[ -z "$battery_data" ]] && return
+
+    battery_percent="$( echo $battery_data | grep -oE '[0-9]{1,3}%' )"
+    battery_status="$( echo $battery_data | awk -F '; *' 'NR==1 { print $2 }' )"
+  elif prompt_pure_exists acpi; then
+    battery_data=$(acpi -b 2>/dev/null | head -1)
+
+    # Return if no battery
+    [[ -z $battery_data ]] && return
+
+    battery_percent="$( echo $battery_data | awk '{print $4}' )"
+
+	# If battery is 0% charge, battery likely doesn't exist.
+    [[ $battery_percent == "0%," ]] && return
+
+    battery_status="$( echo $battery_data | awk '{print tolower($3)}' )"
+  elif prompt_pure_exists upower; then
+    local battery=$(command upower -e | grep battery | head -1)
+
+    # Return if no battery
+    [[ -z $battery ]] && return
+
+    battery_data=$(upower -i $battery)
+    battery_percent="$( echo "$battery_data" | grep percentage | awk '{print $2}' )"
+    battery_status="$( echo "$battery_data" | grep state | awk '{print $2}' )"
+  else
+    return
+  fi
+
+  # Remove trailing % and symbols for comparison
+  battery_percent="$(echo $battery_percent | tr -d '%[,;]')"
+
+	# Battery indicator based on current status of battery
+  if [[ $battery_status == "charging" ]];then
+    battery_symbol="${PURE_PROMPT_BATTERY_SYMBOL_CHARGING}"
+  elif [[ $battery_status =~ "^[dD]ischarg.*" ]]; then
+    battery_symbol="${PURE_PROMPT_BATTERY_SYMBOL_DISCHARGING}"
+	elif [[ $battery_status =~ "AC attached" ]]; then
+		battery_symbol=""
+  else
+    battery_symbol="${PURE_PROMPT_BATTERY_SYMBOL_FULL}"
+  fi
+
+  # Change color based on battery percentage
+  if [[ $battery_percent == 100 || $battery_status =~ "(charged|full)" ]]; then
+    battery_color="%F{green}"
+  elif [[ $battery_percent -lt $PURE_PROMPT_BATTERY_THRESHOLD ]]; then
+    battery_color="%F{red}"
+  else
+    battery_color="%F{214}"
+  fi
+
+  # Escape % for display since it's a special character in Zsh prompt expansion
+  if [[ $PURE_PROMPT_BATTERY_SHOW == 'always' ||
+				$battery_percent -lt $PURE_PROMPT_BATTERY_WARNING_THRESHOLD ||
+        $battery_percent -lt $PURE_PROMPT_BATTERY_THRESHOLD ||
+        $PURE_PROMPT_BATTERY_SHOW == 'charged' && $battery_status =~ "(charged|full)" ]]; then
+    battery_info="${battery_color}${battery_symbol}${battery_percent}%%"
+	else
+		battery_info=""
+  fi
+
+	print -- "$battery_info"
+}
+
+prompt_pure_async_kubecontext() {
+  prompt_pure_exists kubectl || return
+
+  local kube_context=$(kubectl config current-context 2>/dev/null)
+  [[ -z $kube_context ]] && return
+
+  if [[ $PURE_PROMPT_KUBECONTEXT_NAMESPACE_SHOW == true ]]; then
+    local kube_namespace=$(kubectl config view --minify --output 'jsonpath={..namespace}' 2>/dev/null)
+    [[ -n $kube_namespace && "$kube_namespace" != "default" ]] && kube_context="$kube_context/$kube_namespace"
+  fi
+
+  # Apply custom color to section if $kube_context matches a pattern defined in PURE_PROMPT_KUBECONTEXT_COLOR_GROUPS array.
+  local len=${#PURE_PROMPT_KUBECONTEXT_COLOR_GROUPS[@]}
+  local it_to=$((len / 2))
+  local 'section_color' 'i'
+  for ((i = 1; i <= $it_to; i++)); do
+    local idx=$(((i - 1) * 2))
+    local color="${PURE_PROMPT_KUBECONTEXT_COLOR_GROUPS[$idx + 1]}"
+    local pattern="${PURE_PROMPT_KUBECONTEXT_COLOR_GROUPS[$idx + 2]}"
+    if [[ "$kube_context" =~ "$pattern" ]]; then
+      section_color=$color
+      break
+    fi
+  done
+
+  [[ -z "$section_color" ]] && section_color=$PURE_PROMPT_KUBECONTEXT_COLOR
+
+  print -- "%F{${section_color}}${PURE_PROMPT_KUBECONTEXT_SYMBOL}${kube_context}"
+}
+
+prompt_pure_async_terraform() {
+  prompt_pure_exists terraform || return
+
+  # Show Terraform Workspaces when exists
+  [[ -f .terraform/environment ]] || return
+
+  local terraform_workspace=$(<.terraform/environment)
+  [[ -z $terraform_workspace ]] && return
+
+  print -- "%F{$PURE_PROMPT_TERRAFORM_COLOR}${PURE_PROMPT_TERRAFORM_SYMBOL}${terraform_workspace}"
+}
+
+# Show current version of Ruby
+prompt_pure_async_ruby() {
+	# Option EXTENDED_GLOB is set locally to force filename generation on
+	# argument to conditions, i.e. allow usage of explicit glob qualifier (#q).
+	# See the description of filename generation in
+	# http://zsh.sourceforge.net/Doc/Release/Conditional-Expressions.html
+	setopt EXTENDED_GLOB LOCAL_OPTIONS
+
+  # Show versions only for Ruby-specific folders
+  [[ -f Gemfile || -f Rakefile || -n *.rb(#qN^/) ]] || return
+
+  local 'ruby_version'
+
+  if prompt_pure_exists rvm-prompt; then
+    ruby_version=$(rvm-prompt i v g)
+  elif prompt_pure_exists chruby; then
+    ruby_version=$(chruby | sed -n -e 's/ \* //p')
+  elif prompt_pure_exists rbenv; then
+    ruby_version=$(rbenv version-name)
+  elif prompt_pure_exists asdf; then
+    # split output on space and return first element
+    ruby_version=${$(asdf current ruby)[1]}
+  else
+    return
+  fi
+
+  [[ -z $ruby_version || "${ruby_version}" == "system" ]] && return
+
+  # Add 'v' before ruby version that starts with a number
+  [[ "${ruby_version}" =~ ^[0-9].+$ ]] && ruby_version="v${ruby_version}"
+
+	print -- "%F{$PURE_PROMPT_RUBY_COLOR}${PURE_PROMPT_RUBY_SYMBOL}${ruby_version}"
+}
+
+# Show current version of node, exception system.
+prompt_pure_async_node() {
+	# Option EXTENDED_GLOB is set locally to force filename generation on
+	# argument to conditions, i.e. allow usage of explicit glob qualifier (#q).
+	# See the description of filename generation in
+	# http://zsh.sourceforge.net/Doc/Release/Conditional-Expressions.html
+	setopt EXTENDED_GLOB LOCAL_OPTIONS
+
+  # Show NODE status only for JS-specific folders
+  [[ -f package.json || -d node_modules || -n *.js(#qN^/) ]] || return
+
+  local 'node_version'
+
+  if prompt_pure_exists nvm; then
+    node_version=$(nvm current 2>/dev/null)
+    [[ $node_version == "system" || $node_version == "node" ]] && return
+  elif prompt_pure_exists nodenv; then
+    node_version=$(nodenv version-name)
+    [[ $node_version == "system" || $node_version == "node" ]] && return
+  elif prompt_pure_exists node; then
+    node_version=$(node -v 2>/dev/null)
+  else
+    return
+  fi
+
+  [[ $node_version == $PURE_PROMPT_DEFAULT_VERSION ]] && return
+
+  print -- "%F{$PURE_PROMPT_NODE_COLOR}${PURE_PROMPT_NODE_SYMBOL}${node_version}"
+}
+
+prompt_pure_async_golang() {
+	# Option EXTENDED_GLOB is set locally to force filename generation on
+	# argument to conditions, i.e. allow usage of explicit glob qualifier (#q).
+	# See the description of filename generation in
+	# http://zsh.sourceforge.net/Doc/Release/Conditional-Expressions.html
+	setopt EXTENDED_GLOB LOCAL_OPTIONS
+
+  # If there are Go-specific files in current directory, or current directory is under the GOPATH
+  [[ -f go.mod || -d Godeps || -f glide.yaml || -n *.go(#qN^/) || -f Gopkg.yml || -f Gopkg.lock \
+  || ( $GOPATH && "$PWD/" =~ "$GOPATH/" ) ]] || return
+
+  prompt_pure_exists go || return
+
+  # Go version is either the commit hash and date like "devel +5efe9a8f11 Web Jan 9 07:21:16 2019 +0000"
+  # at the time of the build or a release tag like "go1.11.4".
+  # https://github.com/denysdovhan/spaceship-prompt/issues/610
+  local go_version=$(go version | awk '{ if ($3 ~ /^devel/) {print $3 ":" substr($4, 2)} else {print "v" substr($3, 3)} }')
+
+  print -- "%F{$PURE_PROMPT_GOLANG_COLOR}${PURE_PROMPT_GOLANG_SYMBOL}${go_version}"
+}
+
+prompt_pure_async_docker_compose() {
+	# Option EXTENDED_GLOB is set locally to force filename generation on
+	# argument to conditions, i.e. allow usage of explicit glob qualifier (#q).
+	# See the description of filename generation in
+	# http://zsh.sourceforge.net/Doc/Release/Conditional-Expressions.html
+	setopt EXTENDED_GLOB LOCAL_OPTIONS
+
+  prompt_pure_exists docker-compose || return
+
+  # Show Docker-compose status when docker-compose file exists
+  [[ -f docker-compose.yml ]] || return
+
+  local dockercompose_status up down
+	up=0
+	down=0
+  docker-compose ps 2>/dev/null | tail -n+3 | while read line
+  do
+    CONTAINER_LETTER_POSITION=$(echo $line | awk 'match($0,"_"){print RSTART}')
+    CONTAINER_LETTER=$(echo ${line:$CONTAINER_LETTER_POSITION:1} | tr '[:lower:]' '[:upper:]')
+    if [[ $line == *"Up"* ]]; then
+      up=1
+    else
+      down=1
+    fi
+  done
+	if [[ $up -eq 1 && $down -eq 0 ]]; then
+		dockercompose_status="up"
+	fi
+	if [[ $up -eq 0 && $down -eq 1 ]]; then
+		dockercompose_status="down"
+	fi
+	if [[ $up -eq 1 && $down -eq 1 ]]; then
+		dockercompose_status="mixed"
+	fi
+	if [[ $up -eq 0 && $down -eq 0 ]]; then
+		dockercompose_status="no containers"
+	fi
+
+  print -- "%F{$PURE_PROMPT_DOCKERCOMPOSE_COLOR}${PURE_PROMPT_DOCKERCOMPOSE_SYMBOL}${dockercompose_status}"
+}
+
 prompt_pure_async_git_aliases() {
 	setopt localoptions noshwordsplit
 	local -a gitalias pullalias
@@ -231,16 +588,18 @@ prompt_pure_async_vcs_info() {
 	# to be used or configured as the user pleases.
 	zstyle ':vcs_info:*' enable git
 	zstyle ':vcs_info:*' use-simple true
-	# only export two msg variables from vcs_info
-	zstyle ':vcs_info:*' max-exports 2
-	# export branch (%b) and git toplevel (%R)
-	zstyle ':vcs_info:git*' formats '%b' '%R'
-	zstyle ':vcs_info:git*' actionformats '%b|%a' '%R'
+	# only export three msg variables from vcs_info
+	zstyle ':vcs_info:*' max-exports 3
+	# export branch (%b), git toplevel (%R) and stash information via misc (%m)
+	zstyle ':vcs_info:git*' formats '%b' '%R' '%m'
+	zstyle ':vcs_info:git*' actionformats '%b|%K{red}%F{white}%a%f%k' '%R' '%m'
+	zstyle ':vcs_info:git*+set-message:*' hooks git-stash
 
 	vcs_info
 
 	local -A info
 	info[pwd]=$PWD
+	info[stash]=$vcs_info_msg_2_
 	info[top]=$vcs_info_msg_1_
 	info[branch]=$vcs_info_msg_0_
 
@@ -255,7 +614,7 @@ prompt_pure_async_git_dirty() {
 	if [[ $untracked_dirty = 0 ]]; then
 		command git diff --no-ext-diff --quiet --exit-code
 	else
-		test -z "$(command git status --porcelain --ignore-submodules -unormal)"
+		test -z "$(command git --no-optional-locks status --porcelain --ignore-submodules -unormal)"
 	fi
 
 	return $?
@@ -332,13 +691,27 @@ prompt_pure_async_tasks() {
 		unset prompt_pure_git_dirty
 		unset prompt_pure_git_last_dirty_check_timestamp
 		unset prompt_pure_git_arrows
+		unset prompt_pure_git_stash
 		unset prompt_pure_git_fetch_pattern
 		prompt_pure_vcs_info[branch]=
 		prompt_pure_vcs_info[top]=
+		prompt_pure_vcs_info[stash]=
+		prompt_pure_other_info[terraform]=
+		prompt_pure_other_info[ruby]=
+		prompt_pure_other_info[node]=
+		prompt_pure_other_info[golang]=
+		prompt_pure_other_info[dco]=
 	fi
 	unset MATCH MBEGIN MEND
 
 	async_job "prompt_pure" prompt_pure_async_vcs_info
+	async_job "prompt_pure" prompt_pure_async_battery_info
+	async_job "prompt_pure" prompt_pure_async_kubecontext
+	async_job "prompt_pure" prompt_pure_async_terraform
+	async_job "prompt_pure" prompt_pure_async_ruby
+	async_job "prompt_pure" prompt_pure_async_node
+	async_job "prompt_pure" prompt_pure_async_golang
+	async_job "prompt_pure" prompt_pure_async_docker_compose
 
 	# # only perform tasks inside git working tree
 	[[ -n $prompt_pure_vcs_info[top] ]] || return
@@ -397,6 +770,51 @@ prompt_pure_async_callback() {
 				typeset -g prompt_pure_async_init=0
 			fi
 			;;
+		prompt_pure_async_kubecontext|prompt_pure_async_terraform|prompt_pure_async_ruby|prompt_pure_async_node|prompt_pure_async_golang|prompt_pure_async_docker_compose)
+			local -A info variable
+			typeset -gA prompt_pure_other_info
+
+			case $job in
+				prompt_pure_async_kubecontext)
+					variable="kubectl"
+					show_variable=$PURE_PROMPT_KUBECONTEXT_SHOW
+					;;
+				prompt_pure_async_terraform)
+					variable="terraform"
+					show_variable=$PURE_PROMPT_TERRAFORM_SHOW
+					;;
+				prompt_pure_async_ruby)
+					variable="ruby"
+					show_variable=$PURE_PROMPT_RUBY_SHOW
+					;;
+				prompt_pure_async_node)
+					variable="node"
+					show_variable=$PURE_PROMPT_NODE_SHOW
+					;;
+				prompt_pure_async_golang)
+					variable="golang"
+					show_variable=$PURE_PROMPT_GOLANG_SHOW
+					;;
+				prompt_pure_async_docker_compose)
+					variable="dco"
+					show_variable=$PURE_PROMPT_DOCKERCOMPOSE_SHOW
+					;;
+			esac
+
+			# parse output (z) and unquote as array (Q@)
+			if [[ -n $output && $show_variable == true ]]; then
+				prompt_pure_other_info[$variable]=$output
+			else
+				prompt_pure_other_info[$variable]=""
+			fi
+
+			do_render=1
+			;;
+		prompt_pure_async_battery_info)
+			typeset -g prompt_pure_battery_info
+			prompt_pure_battery_info=$output
+			do_render=1
+			;;
 		prompt_pure_async_vcs_info)
 			local -A info
 			typeset -gA prompt_pure_vcs_info
@@ -425,9 +843,10 @@ prompt_pure_async_callback() {
 			# git directory, run the async refresh tasks
 			[[ -n $info[top] ]] && [[ -z $prompt_pure_vcs_info[top] ]] && prompt_pure_async_refresh
 
-			# always update branch and toplevel
+			# always update branch, toplevel and stash
 			prompt_pure_vcs_info[branch]=$info[branch]
 			prompt_pure_vcs_info[top]=$info[top]
+			prompt_pure_vcs_info[stash]=$info[stash]
 
 			do_render=1
 			;;
@@ -543,15 +962,15 @@ prompt_pure_state_setup() {
 	fi
 
 	# show username@host if logged in through SSH
-	[[ -n $ssh_connection ]] && username='%F{242}%n@%m%f'
+	[[ -n $ssh_connection ]] && username='%F{246}%n@%m%f'
 
 	# show username@host if root, with username in white
-	[[ $UID -eq 0 ]] && username='%F{white}%n%f%F{242}@%m%f'
+	[[ $UID -eq 0 ]] && username='%F{white}%n%f%F{246}@%m%f'
 
 	typeset -gA prompt_pure_state
 	prompt_pure_state=(
-		username "$username"
-		prompt	 "${PURE_PROMPT_SYMBOL:-❯}"
+		username     "$username"
+		prompt	     "${PURE_PROMPT_SYMBOL:-❯}"
 	)
 }
 
@@ -598,7 +1017,7 @@ prompt_pure_setup() {
 	PROMPT='%(12V.%F{242}%12v%f .)'
 
 	# prompt turns red if the previous command didn't exit with 0
-	PROMPT+='%(?.%F{magenta}.%F{red})${prompt_pure_state[prompt]}%f '
+	PROMPT+='%(?.%F{green}.%F{red})${prompt_pure_state[prompt]}%f '
 
 	# Store prompt expansion symbols for in-place expansion via (%). For
 	# some reason it does not work without storing them in a variable first.
