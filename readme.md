@@ -2,6 +2,20 @@
 
 > Pretty, minimal and fast ZSH prompt
 
+This is a fork of [sindresorhus/pure](https://github.com/sindresorhus/pure), which takes
+many of the good ideas from the Spaceship prompt and brings it to the speed and elegance of the
+Pure prompt.
+
+- Truncating the directory tree for long paths or in Git repos
+- Git Stash status (based on the work in https://github.com/sindresorhus/pure/pull/462)
+- Battery percentage when running low
+- Ruby version
+- Node.js version
+- Go version
+- Terraform workspace
+- Kubernetes context
+- Docker Compose container status
+
 <img src="screenshot.png" width="864">
 
 
@@ -201,9 +215,9 @@ See [FAQ Archive](https://github.com/sindresorhus/pure/wiki/FAQ-Archive) for pre
 
 ## Team
 
-[![Sindre Sorhus](https://github.com/sindresorhus.png?size=100)](http://sindresorhus.com) | [![Mathias Fredriksson](https://github.com/mafredri.png?size=100)](https://github.com/mafredri)
----|---
-[Sindre Sorhus](https://github.com/sindresorhus) | [Mathias Fredriksson](https://github.com/mafredri)
+| [![Sindre Sorhus](https://github.com/sindresorhus.png?size=100)](http://sindresorhus.com) | [![Mathias Fredriksson](https://github.com/mafredri.png?size=100)](https://github.com/mafredri) |
+| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| [Sindre Sorhus](https://github.com/sindresorhus)                                          | [Mathias Fredriksson](https://github.com/mafredri)                                              |
 
 
 ## License
