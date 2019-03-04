@@ -55,8 +55,6 @@ PURE_PROMPT_GOLANG_COLOR="${PURE_PROMPT_GOLANG_COLOR="cyan"}"
 
 PURE_PROMPT_DOCKERCOMPOSE_SHOW="${PURE_PROMPT_DOCKERCOMPOSE_SHOW=true}"
 PURE_PROMPT_DOCKERCOMPOSE_SYMBOL="${PURE_PROMPT_DOCKERCOMPOSE_SYMBOL="\uf308  "}"
-PURE_PROMPT_DOCKERCOMPOSE_UP_COLOR="${PURE_PROMPT_DOCKERCOMPOSE_UP_COLOR="green"}"
-PURE_PROMPT_DOCKERCOMPOSE_DOWN_COLOR="${PURE_PROMPT_DOCKERCOMPOSE_DOWN_COLOR="red"}"
 PURE_PROMPT_DOCKERCOMPOSE_COLOR="${PURE_PROMPT_DOCKERCOMPOSE_COLOR="32"}"
 
 +vi-git-stash() {
@@ -667,6 +665,18 @@ prompt_pure_async_git_arrows() {
 	command git rev-list --left-right --count HEAD...@'{u}'
 }
 
+prompt_pure_async_autojump() {
+	if [ $AUTOJUMP_SOURCED -eq 1 ]; then
+		if [[ -f "${AUTOJUMP_ERROR_PATH}" ]]; then
+				autojump --add "$(pwd)" >/dev/null 2>>${AUTOJUMP_ERROR_PATH} &!
+		else
+				autojump --add "$(pwd)" >/dev/null &!
+		fi
+	fi
+
+	echo ''
+}
+
 prompt_pure_async_tasks() {
 	setopt localoptions noshwordsplit
 
@@ -712,6 +722,11 @@ prompt_pure_async_tasks() {
 	async_job "prompt_pure" prompt_pure_async_node
 	async_job "prompt_pure" prompt_pure_async_golang
 	async_job "prompt_pure" prompt_pure_async_docker_compose
+
+	# if autojump is loaded, add the current dir asynchronously
+	if [ $AUTOJUMP_SOURCED -eq 1 ]; then
+		async_job "prompt_pure" prompt_pure_async_autojump
+	fi
 
 	# # only perform tasks inside git working tree
 	[[ -n $prompt_pure_vcs_info[top] ]] || return
@@ -974,6 +989,20 @@ prompt_pure_state_setup() {
 	)
 }
 
+prompt_pure_autojump_setup() {
+	if [ $AUTOJUMP_SOURCED -eq 1 ]; then
+		typeset -gaU chpwd_functions
+		delete=(autojump_chpwd)
+		new_chpwd_functions=()
+		for value in "${chpwd_functions[@]}"
+		do
+				[[ $value != autojump_chpwd ]] && new_chpwd_functions+=($value)
+		done
+		chpwd_functions=("${new_chpwd_functions[@]}")
+		unset new_chpwd_functions
+	fi
+}
+
 prompt_pure_setup() {
 	# Prevent percentage showing up if output doesn't end with a newline.
 	export PROMPT_EOL_MARK=''
@@ -1005,6 +1034,7 @@ prompt_pure_setup() {
 	add-zsh-hook preexec prompt_pure_preexec
 
 	prompt_pure_state_setup
+	prompt_pure_autojump_setup
 
 	zle -N prompt_pure_update_vim_prompt_widget
 	zle -N prompt_pure_reset_vim_prompt_widget
