@@ -2,9 +2,8 @@
 
 > Pretty, minimal and fast ZSH prompt
 
-This is a fork of [sindresorhus/pure](https://github.com/sindresorhus/pure), which takes
-many of the good ideas from the Spaceship prompt and brings it to the speed and elegance of the
-Pure prompt.
+This is a fork of [sindresorhus/pure](https://github.com/sindresorhus/pure), as used in our [dotfiles](https://github.com/zenjoy/dotfiles).
+It takes many of the good ideas from the Spaceship prompt and brings it to the speed and elegance of the Pure prompt.
 
 - Show the current time
 - Battery percentage when running low
@@ -17,26 +16,24 @@ Pure prompt.
 - Kubernetes context
 - Docker Compose container status
 
+All checks are done _asynchronously_.
+
 <img src="screenshot.png" width="864">
 
+In the screenshot Pure is running in [iTerm2]([https://hyper.is](https://www.iterm2.com/)) with the [iterm2-snazzy](https://github.com/sindresorhus/iterm2-snazzy) colors and FiraCode Nerd Font from https://nerdfonts.com/.
 
-## Overview
-
-Most prompts are cluttered, ugly and slow. I wanted something visually pleasing that stayed out of my way.
-
-### Why?
+### Other features
 
 - Comes with the perfect prompt character.
   Author went through the whole Unicode range to find it.
 - Shows `git` branch and whether it's dirty (with a `*`).
-- Indicates when you have unpushed/unpulled `git` commits with up/down arrows. *(Check is done asynchronously!)*
+- Indicates when you have unpushed/unpulled `git` commits with up/down arrows.
 - Prompt character turns red if the last command didn't exit with `0`.
 - Command execution time will be displayed if it exceeds the set threshold.
 - Username and host only displayed when in an SSH session.
 - Shows the current path in the title and the [current folder & command](screenshot-title-cmd.png) when a process is running.
 - Support VI-mode indication by reverse prompt symbol (Zsh 5.3+).
 - Makes an excellent starting point for your own custom prompt.
-
 
 ## Install
 
@@ -97,16 +94,43 @@ prompt pure
 
 ## Options
 
-| Option                           | Description                                                                                    | Default value  |
-| :------------------------------- | :--------------------------------------------------------------------------------------------- | :------------- |
-| **`PURE_CMD_MAX_EXEC_TIME`**     | The max execution time of a process before its run time is shown when it exits.                | `5` seconds    |
-| **`PURE_GIT_PULL=0`**            | Prevents Pure from checking whether the current Git remote has been updated.                   |                |
-| **`PURE_GIT_UNTRACKED_DIRTY=0`** | Do not include untracked files in dirtiness check. Mostly useful on large repos (like WebKit). |                |
-| **`PURE_GIT_DELAY_DIRTY_CHECK`** | Time in seconds to delay git dirty checking when `git status` takes > 5 seconds.               | `1800` seconds |
-| **`PURE_PROMPT_SYMBOL`**         | Defines the prompt symbol.                                                                     | `❯`            |
-| **`PURE_PROMPT_VICMD_SYMBOL`**   | Defines the prompt symbol used when the `vicmd` keymap is active (VI-mode).                    | `❮`            |
-| **`PURE_GIT_DOWN_ARROW`**        | Defines the git down arrow symbol.                                                             | `⇣`            |
-| **`PURE_GIT_UP_ARROW`**          | Defines the git up arrow symbol.                                                               | `⇡`            |
+For possible color codes, see https://jonasjacek.github.io/colors/. The current symbols work with all fonts from https://nerdfonts.com/ (you can lookup the symbol with https://nerdfonts.com/#cheat-sheet).
+
+| Option                                       | Description                                                                                    | Default value  |
+| :------------------------------------------- | :--------------------------------------------------------------------------------------------- | :------------- |
+| **`PURE_CMD_MAX_EXEC_TIME`**                 | The max execution time of a process before its run time is shown when it exits.                | `5` seconds    |
+| **`PURE_GIT_PULL=0`**                        | Prevents Pure from checking whether the current Git remote has been updated.                   |                |
+| **`PURE_GIT_UNTRACKED_DIRTY=0`**             | Do not include untracked files in dirtiness check. Mostly useful on large repos (like WebKit). |                |
+| **`PURE_GIT_DELAY_DIRTY_CHECK`**             | Time in seconds to delay git dirty checking when `git status` takes > 5 seconds.               | `1800` seconds |
+| **`PURE_PROMPT_SYMBOL`**                     | Defines the prompt symbol.                                                                     | `❯`            |
+| **`PURE_PROMPT_VICMD_SYMBOL`**               | Defines the prompt symbol used when the `vicmd` keymap is active (VI-mode).                    | `❮`            |
+| **`PURE_GIT_DOWN_ARROW`**                    | Defines the git down arrow symbol.                                                             | `⇣`            |
+| **`PURE_GIT_UP_ARROW`**                      | Defines the git up arrow symbol.                                                               | `⇡`            |
+| **`PURE_PROMPT_BATTERY_SHOW`**               | Show battery section or not (true, false, always or charged)                                   | `true`         |
+| **`PURE_PROMPT_BATTERY_WARNING_THRESHOLD`**  | Battery level below which battery section will be shown in yellow                              | `20`           |
+| **`PURE_PROMPT_BATTERY_THRESHOLD`**          | Battery level below which battery section will be shown in red                                 | `10`           |
+| **`PURE_PROMPT_BATTERY_SYMBOL_CHARGING`**    | Character to be shown if battery is charging                                                   | `⇡`            |
+| **`PURE_PROMPT_BATTERY_SYMBOL_DISCHARGING`** | Character to be shown if battery is discharging                                                | `⇣`            |
+| **`PURE_PROMPT_BATTERY_SYMBOL_FULL`**        | Character to be shown if battery is full                                                       | `•`            |
+| **`PURE_PROMPT_KUBECONTEXT_SHOW`**           | Show the active kubectl context or not                                                         | `true`         |
+| **`PURE_PROMPT_KUBECONTEXT_NAMESPACE_SHOW`** | Should namespace be also displayed                                                             | `true`         |
+| **`PURE_PROMPT_KUBECONTEXT_SYMBOL`**         | Character to be shown before Kubectl context                                                   | `\ue7b2 `      |
+| **`PURE_PROMPT_KUBECONTEXT_COLOR`**          | Color of Kubectl context section                                                               | `208`          |
+| **`PURE_PROMPT_TERRAFORM_SHOW`**             | Show the active Terraform workspace in directories that contain .terraform/environment file.   | `true`         |
+| **`PURE_PROMPT_TERRAFORM_SYMBOL`**           | Character to be shown before Terraform workspace                                               | `\uf9fd`       |
+| **`PURE_PROMPT_TERRAFORM_COLOR`**            | Color of Terraform workspace section                                                           | `105`          |
+| **`PURE_PROMPT_RUBY_SHOW`**                  | Show Ruby version in directories that contain Gemfile, Rakefile, or any .rb file.              | `true`         |
+| **`PURE_PROMPT_RUBY_SYMBOL`**                | Character to be shown before Ruby version                                                      | `\ue21e `      |
+| **`PURE_PROMPT_RUBY_COLOR`**                 | Color of Ruby version section                                                                  | `196`          |
+| **`PURE_PROMPT_NODE_SHOW`**                  | Show Node.js version in directories with package.json, node_modules folder, or any .js file.   | `true`         |
+| **`PURE_PROMPT_NODE_SYMBOL`**                | Character to be shown before Node.js version                                                   | `\uf898 `      |
+| **`PURE_PROMPT_NODE_COLOR`**                 | Color of Node.js version section                                                               | `green`        |
+| **`PURE_PROMPT_GOLANG_SHOW`**                | Show Go version in $GOPATH or in directories with go.mod, Godeps, glide.yaml, or any .go file. | `true`         |
+| **`PURE_PROMPT_GOLANG_SYMBOL`**              | Character to be shown before Golang version                                                    | `\ue627 `      |
+| **`PURE_PROMPT_GOLANG_COLOR`**               | Color of Golang version section                                                                | `cyan`         |
+| **`PURE_PROMPT_DOCKERCOMPOSE_SHOW`**         | Show the state of Docker containers in directories containing a docker-compose.yml file.       | `true`         |
+| **`PURE_PROMPT_DOCKERCOMPOSE_SYMBOL`**       | Character to be shown before Terraform workspace                                               | `\uf308  `     |
+| **`PURE_PROMPT_DOCKERCOMPOSE_COLOR`**        | Color of Docker Compose section                                                                | `32`           |
 
 ## Example
 
@@ -120,17 +144,6 @@ PURE_CMD_MAX_EXEC_TIME=10
 
 prompt pure
 ```
-
-
-## Tips
-
-In the screenshot you see Pure running in [Hyper](https://hyper.is) with the [hyper-snazzy](https://github.com/sindresorhus/hyper-snazzy) theme and Menlo font.
-
-The [Tomorrow Night Eighties](https://github.com/chriskempson/tomorrow-theme) theme with the [Droid Sans Mono](https://www.fontsquirrel.com/fonts/droid-sans-mono) font (15pt) is also a [nice combination](https://github.com/sindresorhus/pure/blob/95ee3e7618c6e2162a1e3cdac2a88a20ac3beb27/screenshot.png).<br>
-*Just make sure you have anti-aliasing enabled in your terminal.*
-
-To have commands colorized as seen in the screenshot, install [zsh-syntax-highlighting](https://github.com/zsh-users/zsh-syntax-highlighting).
-
 
 ## Integration
 
@@ -160,7 +173,7 @@ Update your `.zshrc` file with the following two lines (order matters). Do not u
 
 ```sh
 antigen bundle mafredri/zsh-async
-antigen bundle sindresorhus/pure
+antigen bundle zenjoy/pure
 ```
 
 ### [antibody](https://github.com/getantibody/antibody)
@@ -169,7 +182,7 @@ Update your `.zshrc` file with the following two lines (order matters):
 
 ```sh
 antibody bundle mafredri/zsh-async
-antibody bundle sindresorhus/pure
+antibody bundle zenjoy/pure
 ```
 
 ### [zplug](https://github.com/zplug/zplug)
@@ -178,7 +191,7 @@ Update your `.zshrc` file with the following two lines:
 
 ```sh
 zplug mafredri/zsh-async, from:github
-zplug sindresorhus/pure, use:pure.zsh, from:github, as:theme
+zplug zenjoy/pure, use:pure.zsh, from:github, as:theme
 ```
 
 ### [zplugin](https://github.com/zdharma/zplugin)
@@ -187,40 +200,9 @@ Update your `.zshrc` file with the following two lines (order matters):
 
 ```sh
 zplugin ice pick"async.zsh" src"pure.zsh"
-zplugin light sindresorhus/pure
+zplugin light zenjoy/pure
 ```
-
-## FAQ
-
-There are currently no FAQs.
-
-See [FAQ Archive](https://github.com/sindresorhus/pure/wiki/FAQ-Archive) for previous FAQs.
-
-## Ports
-
-- **ZSH**
-	- [therealklanni/purity](https://github.com/therealklanni/purity) - More compact current working directory, important details on the main prompt line, and extra Git indicators.
- 	- [intelfx/pure](https://github.com/intelfx/pure) - Solarized-friendly colors, highly verbose, and fully async Git integration.
-	- [dfurnes/purer](https://github.com/dfurnes/purer) - Compact single-line prompt with built-in Vim-mode indicator.
-	- [chabou/pure-now](https://github.com/chabou/pure-now) - Fork with [Now](https://zeit.co/now) support
-- **Bash**
-	- [sapegin/dotfiles](https://github.com/sapegin/dotfiles) - [Prompt](https://github.com/sapegin/dotfiles/blob/dd063f9c30de7d2234e8accdb5272a5cc0a3388b/includes/bash_prompt.bash) and [color theme](https://github.com/sapegin/dotfiles/tree/master/color) for Terminal.app.
-- **Fish**
-	- [brandonweiss/pure.fish](https://github.com/brandonweiss/pure.fish) - Pure-inspired prompt for Fish. Not intended to have feature parity.
-	- [rafaelrinaldi/pure](https://github.com/rafaelrinaldi/pure) - Support for bare Fish and various framework ([Oh-My-Fish](https://github.com//oh-my-fish/oh-my-fish), [Fisherman](https://github.com//fisherman/fisherman), and [Wahoo](https://github.com//bucaran/wahoo)).
-- **Rust**
-	- [xcambar/purs](https://github.com/xcambar/purs) - Pure-inspired prompt in Rust.
-- **Go**
-	- [talal/mimir](https://github.com/talal/mimir) - Pure-inspired prompt in Go with Kubernetes and OpenStack cloud support. Not intended to have feature parity.
-
-
-## Team
-
-| [![Sindre Sorhus](https://github.com/sindresorhus.png?size=100)](http://sindresorhus.com) | [![Mathias Fredriksson](https://github.com/mafredri.png?size=100)](https://github.com/mafredri) |
-| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| [Sindre Sorhus](https://github.com/sindresorhus)                                          | [Mathias Fredriksson](https://github.com/mafredri)                                              |
-
 
 ## License
 
-MIT © [Sindre Sorhus](https://sindresorhus.com)
+MIT © [Zenjoy](https://www.zenjoy.be)
